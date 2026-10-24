@@ -1,33 +1,31 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect } from "react";
+import Icon from "./Icon";
 
 export default function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
-
-  // Check the initial theme on load
   useEffect(() => {
-    const isDarkMode = document.documentElement.classList.contains('dark');
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsDark(isDarkMode);
+    document.documentElement.classList.toggle(
+      "dark",
+      window.localStorage.getItem("social-theme") === "dark",
+    );
   }, []);
 
   const toggleTheme = () => {
-    if (isDark) {
-      document.documentElement.classList.remove('dark');
-      setIsDark(false);
-    } else {
-      document.documentElement.classList.add('dark');
-      setIsDark(true);
-    }
+    const dark = !document.documentElement.classList.contains("dark");
+    document.documentElement.classList.toggle("dark", dark);
+    window.localStorage.setItem("social-theme", dark ? "dark" : "light");
   };
 
   return (
-    <button 
+    <button
+      className="theme-toggle"
       onClick={toggleTheme}
-      className="fixed bottom-6 right-6 px-2 py-1 rounded-full bg-black dark:bg-white text-gray-900 dark:text-gray-100 font-semibold shadow-md hover:scale-105 transition-transform duration-200 z-50"
+      aria-label="Toggle color theme"
+      title="Toggle color theme"
     >
-      {isDark ? '☀️' : '🌙'}
+      <span className="theme-icon-light"><Icon name="moon" /></span>
+      <span className="theme-icon-dark"><Icon name="sun" /></span>
     </button>
   );
 }

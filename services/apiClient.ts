@@ -4,7 +4,7 @@ import axios from "axios";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export const apiClient = axios.create({
-  baseURL: API_URL,
+  baseURL: "/api", // Relative path handled by Next.js proxy rewrite
   withCredentials: true,
 });
 
@@ -13,8 +13,8 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+      if (!["/login", "/register", "/"].includes(window.location.pathname)) {
+        window.dispatchEvent(new Event("social:session-expired"));
       }
     }
     return Promise.reject(error);
