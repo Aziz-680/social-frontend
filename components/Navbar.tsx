@@ -1,112 +1,138 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import authService from "../services/AuthService";
-import StatusSelector from "./StatusSelector";
+import authService from "@/services/AuthService";
+import type { User } from "@/lib/types";
+import Avatar from "./Avatar";
+import FriendRequestsModal from "./FriendRequestsModal";
+import Icon from "./Icon";
+import ThemeToggle from "./ThemeToggle";
+
+const publicRoutes = ["/", "/login", "/register"];
 
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [user, setUser] = useState<User | null>(null);
+  const [query, setQuery] = useState("");
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchUser = async () => {
-      const data = await authService.checkSession();
-      if (data?.user) setUser(data.user);
-    };
+    let active = true;
 
-    const publicRoutes = ["/", "/login", "/register"];
     if (!publicRoutes.includes(pathname)) {
-      fetchUser();
+      authService
+        .checkSession()
+        .then((session) => {
+          if (active) setUser(session.user);
+        })
+        .catch(() => {
+          if (active) setError("Your session could not be loaded.");
+        });
     }
-  }, [pathname]);
 
-  const publicRoutes = ["/", "/login", "/register"];
-  if (publicRoutes.includes(pathname)) {
-    return null;
-  }
+    const handleSessionExpired = () => router.replace("/login");
+    window.addEventListener("social:session-expired", handleSessionExpired);
 
-  const handleStatusUpdate = (newStatus: string) => {
-    if (user) {
-      setUser({ ...user, status: newStatus });
-    }
+    return () => {
+      active = false;
+      window.removeEventListener("social:session-expired", handleSessionExpired);
+    };
+  }, [pathname, router]);
+
+  if (publicRoutes.includes(pathname)) return null;
+
+  const handleSearch = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = query.trim();
+    if (trimmed) router.push(`/search?q=${encodeURIComponent(trimmed)}`);
   };
 
-  const handleLogout = () => {
-    authService.logout();
-  };
-
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    // TODO: Route to search results page or filter posts/users
-    console.log("Searching for:", searchQuery);
+  const handleLogout = async () => {
+    setError("");
+    setIsLoggingOut(true);
+    try {
+      await authService.logout();
+      router.replace("/login");
+      router.refresh();
+    } catch {
+      setError("We couldn't sign you out. Please try again.");
+      setIsLoggingOut(false);
+    }
   };
 
   return (
-    <nav className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-md shadow-sm border-b border-gray-200 dark:border-gray-800 px-6 py-3 flex justify-between items-center sticky top-0 z-50 transition-colors duration-300 gap-4">
-      {/* 1. Brand Logo */}
-      <Link
-        href="/feed"
-        className="text-2xl font-bold text-blue-600 dark:text-blue-400 transition-colors shrink-0"
-      >
-        Social App
-      </Link>
+    <>
+      <header className="app-header">
+        <div className="app-header-inner">
+          <Link href="/feed" className="app-brand" aria-label="Social home">
+            <span className="brand-mark">s</span>
+            <span>social</span>
+          </Link>
 
-      {/* 2. Middle Search Bar */}
-      <form onSubmit={handleSearchSubmit} className="flex-1 max-w-md mx-4">
-        <div className="relative">
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search users or posts..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 rounded-full text-sm outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white dark:focus:bg-gray-900 transition-all"
-          />
-          <span className="absolute left-3.5 top-2.5 text-gray-400 text-sm pointer-events-none">
-            🔍
-          </span>
-        </div>
-      </form>
-
-      {/* 3. Right Menu (Status, Profile & Logout) */}
-      <div className="flex gap-4 items-center shrink-0">
-        {user && (
-          <div className="flex items-center gap-4">
-            {/* Status Selector */}
-            <StatusSelector
-              currentStatus={user.status}
-              onStatusChange={handleStatusUpdate}
+          <form className="header-search" onSubmit={handleSearch} role="search">
+            <Icon name="search" />
+            <input
+              aria-label="Search people"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search people"
             />
+          </form>
 
-            {/* Clickable User Avatar & Name -> Redirects to Profile */}
-            <Link
-              href="/profile"
-              className="flex items-center gap-2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            >
-              <img
-                src={user.profilePicture || "https://via.placeholder.com/32"}
-                alt="Avatar"
-                className="w-8 h-8 rounded-full object-cover border border-gray-300 dark:border-gray-700"
-              />
-              <span className="text-sm font-semibold text-gray-800 dark:text-gray-200 pr-2">
-                {user.firstName}
-              </span>
+          <nav className="header-actions" aria-label="Main navigation">
+            <Link className={pathname === "/feed" ? "header-link active" : "header-link"} href="/feed">
+              <Icon name="home" />
+              <span>Home</span>
             </Link>
-          </div>
-        )}
+            <Link className={pathname === "/friends" ? "header-link active" : "header-link"} href="/friends">
+              <Icon name="users" />
+              <span>Connections</span>
+            </Link>
+            <button className="header-link" onClick={() => setRequestOpen(true)}>
+              <Icon name="bell" />
+              <span>Requests</span>
+            </button>
+          </nav>
 
-        <button
-          onClick={handleLogout}
-          className="bg-gray-100 hover:bg-red-500 text-gray-700 hover:text-white dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-red-600 px-4 py-2 rounded-lg text-sm font-bold transition-colors"
-        >
-          Logout
-        </button>
-      </div>
-    </nav>
+          <div className="header-account">
+            <ThemeToggle />
+            {user && (
+              <Link href="/profile" className="account-link" aria-label="Open your profile">
+                <Avatar user={user} size="small" />
+                <span>{user.firstName}</span>
+              </Link>
+            )}
+            <button
+              className="logout-button"
+              disabled={isLoggingOut}
+              onClick={handleLogout}
+              aria-label="Sign out"
+            >
+              <Icon name="logout" />
+              <span>{isLoggingOut ? "Signing out" : "Sign out"}</span>
+            </button>
+          </div>
+        </div>
+        {error && <p className="header-error" role="status">{error}</p>}
+      </header>
+
+      <nav className="mobile-nav" aria-label="Mobile navigation">
+        <Link href="/feed" aria-label="Home"><Icon name="home" /></Link>
+        <Link href="/search" aria-label="Search"><Icon name="search" /></Link>
+        <Link href="/friends" aria-label="Connections"><Icon name="users" /></Link>
+        <Link href="/profile" aria-label="Profile"><Icon name="user" /></Link>
+      </nav>
+
+      <FriendRequestsModal
+        isOpen={requestOpen}
+        onClose={() => setRequestOpen(false)}
+      />
+    </>
   );
 }
