@@ -46,7 +46,7 @@ export default function FeedPage() {
       formData.append("privacy", privacy);
       if (selectedImage) formData.append("image", selectedImage);
 
-      await postService.createPost(formData);
+      await postService.createPost(formData as any);
       setContent("");
       setPrivacy("public");
       setSelectedImage(null);

@@ -2,6 +2,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import postService from "@/services/PostService";
 
 const REACTION_EMOJIS: Record<string, string> = {
@@ -27,8 +28,12 @@ export default function PostCard({ post, currentUser, onPostUpdate, onPostDelete
   const [commentText, setCommentText] = useState("");
 
   const author = typeof post.userId === "object" ? post.userId : currentUser;
-  const isPostOwner = (author?._id || post.userId) === currentUser?._id;
+  const authorId = author?._id || post.userId;
+  const isPostOwner = authorId === currentUser?._id;
   const userReaction = post.reactions?.find((r: any) => r.userId === currentUser?._id)?.type;
+
+  // Profile link routing logic
+  const profileLink = isPostOwner ? "/profile" : `/user/${authorId}`;
 
   // Post Actions
   const handleEditPost = async () => {
@@ -87,14 +92,14 @@ export default function PostCard({ post, currentUser, onPostUpdate, onPostDelete
     <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-sm space-y-4">
       {/* Post Header */}
       <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
+        <Link href={profileLink} className="flex items-center gap-3 group">
           <img
             src={author?.profilePicture || "https://via.placeholder.com/40"}
             alt="Avatar"
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover group-hover:opacity-80 transition-opacity"
           />
           <div>
-            <p className="font-bold text-gray-900 dark:text-white">
+            <p className="font-bold text-gray-900 dark:text-white group-hover:underline">
               {author?.firstName} {author?.lastName}
             </p>
             <p className="text-xs text-gray-500 flex items-center gap-1">
@@ -102,7 +107,7 @@ export default function PostCard({ post, currentUser, onPostUpdate, onPostDelete
               {post.privacy === "public" ? "🌐 Public" : post.privacy === "friends" ? "👥 Friends" : "🔒 Only Me"}
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* Post Owner Controls */}
         {isPostOwner && !isEditingPost && (
@@ -130,7 +135,17 @@ export default function PostCard({ post, currentUser, onPostUpdate, onPostDelete
       {post.isRepost && post.originalPostId && (
         <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 text-sm">
           <p className="text-gray-500 text-xs mb-1">
-            🔁 Reposted from {post.originalPostId.userId?.firstName}
+            🔁 Reposted from{" "}
+            <Link
+              href={
+                post.originalPostId.userId?._id === currentUser?._id
+                  ? "/profile"
+                  : `/profile/${post.originalPostId.userId?._id}`
+              }
+              className="font-bold hover:underline"
+            >
+              {post.originalPostId.userId?.firstName} {post.originalPostId.userId?.lastName}
+            </Link>
           </p>
           <p>{post.originalPostId.content}</p>
         </div>
@@ -233,22 +248,24 @@ export default function PostCard({ post, currentUser, onPostUpdate, onPostDelete
 
           <div className="space-y-2 max-h-60 overflow-y-auto">
             {post.comments?.map((c: any) => {
-              const isCommentOwner = (c.userId?._id || c.userId) === currentUser?._id;
+              const commenterId = c.userId?._id || c.userId;
+              const isCommentOwner = commenterId === currentUser?._id;
               const commentReaction = c.reactions?.find((r: any) => r.userId === currentUser?._id)?.type;
+              const commentAuthorLink = isCommentOwner ? "/profile" : `/profile/${commenterId}`;
 
               return (
                 <div key={c._id} className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl space-y-2">
                   <div className="flex justify-between items-start">
-                    <div className="flex items-center gap-2">
+                    <Link href={commentAuthorLink} className="flex items-center gap-2 group">
                       <img
                         src={c.userId?.profilePicture || "https://via.placeholder.com/32"}
                         alt="Commenter"
-                        className="w-6 h-6 rounded-full object-cover"
+                        className="w-6 h-6 rounded-full object-cover group-hover:opacity-80 transition-opacity"
                       />
-                      <span className="font-bold text-xs">
+                      <span className="font-bold text-xs group-hover:underline">
                         {c.userId?.firstName} {c.userId?.lastName}
                       </span>
-                    </div>
+                    </Link>
 
                     {/* Comment Permissions: Delete (Comment OR Post Owner), Edit (Comment Owner) */}
                     <div className="flex items-center gap-2 text-xs">
