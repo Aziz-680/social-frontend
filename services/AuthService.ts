@@ -1,31 +1,9 @@
-import axios from "axios";
-
-const apiClient = axios.create({
-  baseURL: "http://localhost:3000/api/auth",
-  withCredentials: true,
-});
-
-apiClient.interceptors.response.use(
-  (response) => {
-    return response;
-  },
-  (error) => {
-    if (error.response && error.response.status === 401) {
-      console.warn("Session expired or unauthorized. Redirecting to login...");
-      if (
-        typeof window !== "undefined" &&
-        window.location.pathname !== "/login"
-      ) {
-        window.location.href = "/login";
-      }
-    }
-    return Promise.reject(error);
-  },
-);
+import { apiClient } from "./apiClient";
+import type { User } from "@/lib/types";
 
 class AuthService {
   async login(email: string, password: string) {
-    const response = await apiClient.post(`/login`, { email, password });
+    const response = await apiClient.post("/auth/login", { email, password });
     return response.data;
   }
 
@@ -35,7 +13,7 @@ class AuthService {
     email: string,
     password: string,
   ) {
-    const response = await apiClient.post(`/register`, {
+    const response = await apiClient.post("/auth/register", {
       firstName,
       lastName,
       email,
@@ -45,27 +23,14 @@ class AuthService {
   }
 
   async logout() {
-    try {
-      await axios.post(
-        "http://localhost:3000/api/auth/logout",
-        {},
-        { withCredentials: true },
-      );
-    } catch (error) {
-      console.error("Logout error", error);
-    } finally {
-      window.location.href = "/login"; 
-    }
+    await apiClient.post("/auth/logout");
   }
 
   async checkSession() {
-    try {
-      const response = await apiClient.get(`/me`);
-      return response.data.data; 
-    } catch (error) {
-      return null; 
-    }
+    const response = await apiClient.get("/auth/me");
+    return response.data.data as { user: User };
   }
 }
 
-export default new AuthService();
+const authService = new AuthService();
+export default authService;

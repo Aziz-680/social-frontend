@@ -2,18 +2,10 @@
 
 import { useEffect, useState } from "react";
 import friendService from "@/services/FriendService";
-
-type FriendRequestSender = {
-  _id: string;
-  firstName: string;
-  lastName: string;
-  profilePicture?: string | null;
-};
-
-type FriendRequest = {
-  _id: string;
-  senderId: FriendRequestSender;
-};
+import type { User } from "@/lib/types";
+import { getUserId, getUserName } from "@/lib/types";
+import Avatar from "./Avatar";
+import Icon from "./Icon";
 
 type FriendRequestsModalProps = {
   isOpen: boolean;
@@ -21,76 +13,105 @@ type FriendRequestsModalProps = {
   onRequestAction?: () => void;
 };
 
-export default function FriendRequestsModal({ isOpen, onClose, onRequestAction }: FriendRequestsModalProps) {
-  const [requests, setRequests] = useState<FriendRequest[]>([]);
+export default function FriendRequestsModal({
+  isOpen,
+  onClose,
+  onRequestAction,
+}: FriendRequestsModalProps) {
+  const [requests, setRequests] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (isOpen) {
-      friendService.getPendingRequests().then((data) => setRequests(data || []));
-    }
+    if (!isOpen) return;
+    friendService
+      .getPendingRequests()
+      .then(setRequests)
+      .catch(() => setError("Friend requests couldn't be loaded. Please try again."))
+      .finally(() => setIsLoading(false));
   }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleAccept = async (senderId: string) => {
-    await friendService.acceptRequest(senderId);
-    setRequests((prev) => prev.filter((r) => r.senderId._id !== senderId));
-    if (onRequestAction) onRequestAction();
-  };
-
-  const handleReject = async (senderId: string) => {
-    await friendService.rejectRequest(senderId);
-    setRequests((prev) => prev.filter((r) => r.senderId._id !== senderId));
+  const handleAction = async (senderId: string, action: "accept" | "decline") => {
+    setError("");
+    try {
+      if (action === "accept") {
+        await friendService.acceptRequest(senderId);
+        onRequestAction?.();
+      } else {
+        await friendService.rejectRequest(senderId);
+      }
+      setRequests((current) =>
+        current.filter((request) => getUserId(request) !== senderId),
+      );
+    } catch {
+      setError(
+        action === "accept"
+          ? "That request couldn't be accepted. Please try again."
+          : "That request couldn't be declined. Please try again.",
+      );
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
-        <div className="p-4 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center">
-          <h3 className="text-lg font-bold text-gray-900 dark:text-white">Friend Requests</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-red-500 text-xl font-bold">
-            &times;
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        className="request-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="requests-title"
+      >
+        <div className="modal-heading">
+          <div>
+            <h2 id="requests-title">Connection requests</h2>
+            <p>Choose who to add to your network.</p>
+          </div>
+          <button className="icon-button" onClick={onClose} aria-label="Close requests">
+            <Icon name="close" />
           </button>
         </div>
 
-        <div className="p-4 overflow-y-auto flex-1 space-y-3">
-          {requests.length === 0 ? (
-            <p className="text-center text-gray-500 py-4">No pending friend requests.</p>
-          ) : (
-            requests.map((req) => (
-              <div key={req._id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={req.senderId.profilePicture || "https://via.placeholder.com/40"}
-                    alt="Sender"
-                    className="w-10 h-10 rounded-full object-cover"
-                  />
-                  <div>
-                    <p className="font-semibold text-sm text-gray-900 dark:text-white">
-                      {req.senderId.firstName} {req.senderId.lastName}
-                    </p>
-                  </div>
+        <div className="request-list">
+          {error && <p className="form-error" role="alert">{error}</p>}
+          {isLoading ? (
+            <p className="empty-message">Loading your requests…</p>
+          ) : requests.length === 0 ? (
+            <p className="empty-message">You’re all caught up. New requests will appear here.</p>
+          ) : requests.map((request) => {
+            const senderId = getUserId(request);
+            return (
+              <article className="request-row" key={senderId}>
+                <Avatar user={request} />
+                <div className="request-person">
+                  <strong>{getUserName(request)}</strong>
+                  <span>Would like to connect</span>
                 </div>
-
-                <div className="flex gap-2">
+                <div className="request-actions">
                   <button
-                    onClick={() => handleAccept(req.senderId._id)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-3 py-1.5 rounded-lg"
+                    className="button button-primary button-small"
+                    onClick={() => handleAction(senderId, "accept")}
                   >
                     Accept
                   </button>
                   <button
-                    onClick={() => handleReject(req.senderId._id)}
-                    className="bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs font-bold px-3 py-1.5 rounded-lg"
+                    className="button button-quiet button-small"
+                    onClick={() => handleAction(senderId, "decline")}
                   >
-                    Delete
+                    Decline
                   </button>
                 </div>
-              </div>
-            ))
-          )}
+              </article>
+            );
+          })}
         </div>
-      </div>
+      </section>
     </div>
   );
 }

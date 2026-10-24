@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
-import ThemeToggle from "../components/ThemeToggle";
-import Navbar from "../components/Navbar";
-import RightSidebar from "../components/RightSidebar";
-
-const inter = Inter({ subsets: ["latin"] });
+import AppFrame from "@/components/AppFrame";
 
 export const metadata: Metadata = {
-  title: "Social App",
-  description: "Full-stack social media application",
+  title: "Social | Your network, all together",
+  description: "Keep up with friends, colleagues, and the ideas you share.",
 };
 
 export default function RootLayout({
@@ -19,12 +14,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.className} bg-white dark:bg-black transition-colors duration-300`}>
-        <ThemeToggle />
-        <Navbar /> 
-        <RightSidebar />
-        <main className="flex-grow"></main>
-        {children}
+      <body>
+        <div
+          hidden
+          aria-hidden="true"
+          dangerouslySetInnerHTML={{
+            __html: "<!-- THESIS: A familiar social network that brings personal and professional connections into one feed. OWN-WORLD: Clear white surfaces, deep ink, and a confident blue accent anchor a responsive network UI. STORY: Members discover people, choose post visibility, and share or respond to updates. FIRST VIEWPORT: A compact top bar frames a three-column feed; the composer sits above the latest updates and remains the primary action. FORM: Operate; a conventional social-feed layout adapted to the current blue-and-neutral interface. -->",
+          }}
+        />
+        <AppFrame>{children}</AppFrame>
       </body>
     </html>
   );
