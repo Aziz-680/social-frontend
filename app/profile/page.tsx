@@ -5,67 +5,16 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import postService from "@/services/PostService";
 import userService from "@/services/UserService";
-<<<<<<< HEAD
-=======
 import type { Pagination, Post, User } from "@/lib/types";
 import { getErrorMessage } from "@/lib/errors";
 import Avatar from "@/components/Avatar";
 import Icon from "@/components/Icon";
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
 import PostCard from "@/components/PostCard";
 import StatusSelector from "@/components/StatusSelector";
 
 const emptyPagination: Pagination = { totalItems: 0, currentPage: 0, totalPages: 0, limit: 5 };
 
 export default function ProfilePage() {
-<<<<<<< HEAD
-  const [user, setUser] = useState<any>(null);
-  const [posts, setPosts] = useState<any[]>([]);
-  const [isLoadingPosts, setIsLoadingPosts] = useState(true);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    const fetchUserDataAndPosts = async () => {
-      try {
-        const session = await authService.checkSession();
-        if (session?.user) {
-          setUser(session.user);
-          const response = await postService.getUserPosts(session.user._id, 1, 10);
-          const userPosts = (response as any)?.posts ?? response;
-          setPosts(Array.isArray(userPosts) ? userPosts : []);
-        }
-      } catch (error) {
-        console.error("Failed to fetch profile data", error);
-      } finally {
-        setIsLoadingPosts(false);
-      }
-    };
-
-    fetchUserDataAndPosts();
-  }, []);
-
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const formData = new FormData();
-    formData.append("profilePicture", file);
-
-    try {
-      const updatedUser = await userService.uploadAvatar(formData);
-      setUser(updatedUser);
-    } catch (error) {
-      alert("Failed to upload avatar");
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-blue-600 font-bold text-lg">Loading Profile...</div>
-      </div>
-    );
-=======
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [pagination, setPagination] = useState(emptyPagination);
@@ -172,7 +121,6 @@ export default function ProfilePage() {
 
   if (isLoading && !user) {
     return <div className="profile-column"><div className="loading-card">Loading your profile…</div></div>;
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
   }
 
   return (
@@ -191,70 +139,6 @@ export default function ProfilePage() {
             disabled={isUploading}
             aria-label="Change profile photo"
           >
-<<<<<<< HEAD
-            {user?.profilePicture ? (
-              <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-4xl font-bold text-gray-500">{user?.firstName?.[0] || "U"}</span>
-            )}
-            <div className="absolute inset-0 bg-black/40 text-white text-xs font-bold flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-              Change Photo
-            </div>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleAvatarUpload}
-              className="hidden"
-              accept="image/*"
-            />
-          </div>
-
-          <div className="flex-1 text-center sm:text-left">
-            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
-              {user?.firstName} {user?.lastName}
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">{user?.email}</p>
-          </div>
-        </div>
-
-        <div className="p-8 border-t border-gray-100 dark:border-gray-800">
-          <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-800 flex justify-between items-center">
-            <div>
-              <p className="text-sm text-gray-500 font-semibold uppercase">Status</p>
-              <p className="text-lg font-bold mt-1 capitalize">{user?.status}</p>
-            </div>
-            <StatusSelector
-              currentStatus={user?.status}
-              onStatusChange={(newStatus) => setUser({ ...user, status: newStatus })}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* User Timeline */}
-      <div className="space-y-6">
-        <h3 className="text-xl font-bold mb-4">Your Posts</h3>
-        {isLoadingPosts ? (
-          <p className="text-center text-gray-500 py-4">Loading your posts...</p>
-        ) : posts.length === 0 ? (
-          <p className="text-center text-gray-500 py-8">You have not posted anything yet.</p>
-        ) : (
-          posts.map((post) => (
-            <PostCard
-              key={post._id}
-              post={post}
-              currentUser={user}
-              onPostUpdate={(updated) =>
-                setPosts((prev) => prev.map((p) => (p._id === updated._id ? updated : p)))
-              }
-              onPostDelete={(deletedId) =>
-                setPosts((prev) => prev.filter((p) => p._id !== deletedId))
-              }
-            />
-          ))
-        )}
-      </div>
-=======
             <Avatar user={user} size="large" />
             <span>{isUploading ? "Uploading…" : "Change photo"}</span>
           </button>
@@ -386,7 +270,6 @@ export default function ProfilePage() {
           </button>
         )}
       </section>
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
     </div>
   );
 }

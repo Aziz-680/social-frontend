@@ -90,15 +90,11 @@ export default function FeedPage() {
     formData.append("privacy", privacy);
     if (selectedImage) formData.append("image", selectedImage);
 
-<<<<<<< HEAD
-      await postService.createPost(formData as any);
-=======
     setIsPosting(true);
     setError("");
     try {
       const created = await postService.createPost(formData);
       setPosts((current) => [created, ...current]);
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
       setContent("");
       setPrivacy("public");
       chooseImage();
