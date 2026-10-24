@@ -1,10 +1,7 @@
 "use client";
 
 import { useState } from "react";
-<<<<<<< HEAD
-=======
 import type { FormEvent } from "react";
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
 import Link from "next/link";
 import postService from "@/services/PostService";
 import type { Post, ReactionType, User } from "@/lib/types";
@@ -57,19 +54,6 @@ export default function PostCard({
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
-<<<<<<< HEAD
-  const author = typeof post.userId === "object" ? post.userId : currentUser;
-  const authorId = author?._id || post.userId;
-  const isPostOwner = authorId === currentUser?._id;
-  const userReaction = post.reactions?.find((r: any) => r.userId === currentUser?._id)?.type;
-
-  // Profile link routing logic
-  const profileLink = isPostOwner ? "/profile" : `/user/${authorId}`;
-
-  // Post Actions
-  const handleEditPost = async () => {
-    if (!editPostContent.trim()) return;
-=======
   const author = typeof post.userId === "object" ? post.userId : undefined;
   const isOwner = getUserId(post.userId) === currentUser?._id;
   const currentReaction = post.reactions?.find(
@@ -91,7 +75,6 @@ export default function PostCard({
     }
 
     setIsSaving(true);
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
     try {
       const updated = await postService.editPost(
         post._id,
@@ -184,72 +167,9 @@ export default function PostCard({
   };
 
   return (
-<<<<<<< HEAD
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 p-6 rounded-2xl shadow-sm space-y-4">
-      {/* Post Header */}
-      <div className="flex justify-between items-center">
-        <Link href={profileLink} className="flex items-center gap-3 group">
-          <img
-            src={author?.profilePicture || "https://via.placeholder.com/40"}
-            alt="Avatar"
-            className="w-10 h-10 rounded-full object-cover group-hover:opacity-80 transition-opacity"
-          />
-          <div>
-            <p className="font-bold text-gray-900 dark:text-white group-hover:underline">
-              {author?.firstName} {author?.lastName}
-            </p>
-            <p className="text-xs text-gray-500 flex items-center gap-1">
-              {new Date(post.createdAt).toLocaleDateString()} •{" "}
-              {post.privacy === "public" ? "🌐 Public" : post.privacy === "friends" ? "👥 Friends" : "🔒 Only Me"}
-            </p>
-          </div>
-        </Link>
-
-        {/* Post Owner Controls */}
-        {isPostOwner && !isEditingPost && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                setIsEditingPost(true);
-                setEditPostContent(post.content);
-              }}
-              className="text-xs text-blue-500 hover:underline font-semibold"
-            >
-              Edit
-            </button>
-            <button
-              onClick={handleDeletePost}
-              className="text-xs text-red-500 hover:underline font-semibold"
-            >
-              Delete
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Repost Header Banner */}
-      {post.isRepost && post.originalPostId && (
-        <div className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800 text-sm">
-          <p className="text-gray-500 text-xs mb-1">
-            🔁 Reposted from{" "}
-            <Link
-              href={
-                post.originalPostId.userId?._id === currentUser?._id
-                  ? "/profile"
-                  : `/profile/${post.originalPostId.userId?._id}`
-              }
-              className="font-bold hover:underline"
-            >
-              {post.originalPostId.userId?.firstName} {post.originalPostId.userId?.lastName}
-            </Link>
-          </p>
-          <p>{post.originalPostId.content}</p>
-        </div>
-=======
     <article className="post-card">
       {post.isRepost && (
         <p className="repost-label"><Icon name="share" /> Shared by {getUserName(author)}</p>
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
       )}
       <header className="post-heading">
         <Link href={author?._id ? `/profile/${author._id}` : "/profile"} className="post-author">
@@ -365,57 +285,6 @@ export default function PostCard({
       {notice && <p className="inline-success" role="status">{notice}</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
 
-<<<<<<< HEAD
-          <div className="space-y-2 max-h-60 overflow-y-auto">
-            {post.comments?.map((c: any) => {
-              const commenterId = c.userId?._id || c.userId;
-              const isCommentOwner = commenterId === currentUser?._id;
-              const commentReaction = c.reactions?.find((r: any) => r.userId === currentUser?._id)?.type;
-              const commentAuthorLink = isCommentOwner ? "/profile" : `/profile/${commenterId}`;
-
-              return (
-                <div key={c._id} className="bg-gray-50 dark:bg-gray-800/50 p-3 rounded-xl space-y-2">
-                  <div className="flex justify-between items-start">
-                    <Link href={commentAuthorLink} className="flex items-center gap-2 group">
-                      <img
-                        src={c.userId?.profilePicture || "https://via.placeholder.com/32"}
-                        alt="Commenter"
-                        className="w-6 h-6 rounded-full object-cover group-hover:opacity-80 transition-opacity"
-                      />
-                      <span className="font-bold text-xs group-hover:underline">
-                        {c.userId?.firstName} {c.userId?.lastName}
-                      </span>
-                    </Link>
-
-                    {/* Comment Permissions: Delete (Comment OR Post Owner), Edit (Comment Owner) */}
-                    <div className="flex items-center gap-2 text-xs">
-                      {isCommentOwner && (
-                        <button
-                          onClick={async () => {
-                            const text = prompt("Edit comment:", c.content);
-                            if (text?.trim()) {
-                              const updated = await postService.editComment(post._id, c._id, text);
-                              onPostUpdate(updated);
-                            }
-                          }}
-                          className="text-blue-500 hover:underline"
-                        >
-                          Edit
-                        </button>
-                      )}
-                      {(isCommentOwner || isPostOwner) && (
-                        <button
-                          onClick={async () => {
-                            if (confirm("Delete comment?")) {
-                              const updated = await postService.deleteComment(post._id, c._id);
-                              onPostUpdate(updated);
-                            }
-                          }}
-                          className="text-red-500 hover:underline"
-                        >
-                          Delete
-                        </button>
-=======
       {commentsOpen && (
         <section className="comment-section" aria-label="Comments">
           <form className="comment-form" onSubmit={addComment}>
@@ -453,7 +322,6 @@ export default function PostCard({
                         />
                       ) : (
                         <p>{comment.content}</p>
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460
                       )}
                     </div>
                     <div className="comment-actions">

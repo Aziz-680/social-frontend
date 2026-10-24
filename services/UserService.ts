@@ -1,19 +1,4 @@
 import { apiClient } from "./apiClient";
-<<<<<<< HEAD
-
-class UserService {
-  uploadAvatar(formData: FormData) {
-    throw new Error("Method not implemented.");
-  }
-  searchUsers = (query: string) =>
-    apiClient.get(`/user/search?q=${encodeURIComponent(query)}`).then((res) => res.data.data);
-
-  getPublicProfile = (userId: string) =>
-    apiClient.get(`/user/profile/${userId}`).then((res) => res.data.data);
-}
-
-export default new UserService();
-=======
 import type { User, WorkExperience } from "@/lib/types";
 
 export type ProfileUpdate = Partial<
@@ -53,4 +38,3 @@ class UserService {
 
 const userService = new UserService();
 export default userService;
->>>>>>> d3e7f0d353f05636cd59e220ee0229a842894460

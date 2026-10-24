@@ -1,10 +1,7 @@
 import axios from "axios";
 
-// Fallback to exactly where the Express server lives
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-
 export const apiClient = axios.create({
-  baseURL: "/api", // Relative path handled by Next.js proxy rewrite
+  baseURL: "/api",
   withCredentials: true,
 });
 
