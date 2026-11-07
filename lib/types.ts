@@ -26,6 +26,18 @@ export type Reaction = {
   type: ReactionType;
 };
 
+export type NotificationItem = {
+  _id: string;
+  recipientId: string;
+  actorId: string | User;
+  postId: string | Pick<Post, "_id" | "content" | "media" | "isRepost" | "originalPostId">;
+  type: "reaction" | "comment" | "share";
+  reactionType?: ReactionType;
+  commentPreview?: string;
+  isRead: boolean;
+  createdAt?: string;
+};
+
 export type Comment = {
   _id: string;
   userId: string | User;

@@ -22,6 +22,12 @@ export default function AppFrame({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isPublic) return;
     let active = true;
+    const handleProfileUpdated = (event: Event) => {
+      const updatedUser = (event as CustomEvent<User>).detail;
+      if (updatedUser) setUser(updatedUser);
+    };
+
+    window.addEventListener("social:profile-updated", handleProfileUpdated);
     userService.getProfile().then((profile) => {
       if (active) {
         setUser(profile);
@@ -35,6 +41,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
     });
     return () => {
       active = false;
+      window.removeEventListener("social:profile-updated", handleProfileUpdated);
     };
   }, [isPublic]);
 

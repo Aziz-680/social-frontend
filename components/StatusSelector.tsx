@@ -38,6 +38,7 @@ export default function StatusSelector({
     try {
       await userService.updateProfile({ status });
       onStatusChange(status);
+      window.dispatchEvent(new CustomEvent("social:status-updated", { detail: { status } }));
     } catch {
       setError("Status couldn't be updated.");
     } finally {

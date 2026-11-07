@@ -18,23 +18,14 @@ type PostCardProps = {
   onPostShared?: () => void;
 };
 
-const reactionTypes: Array<{ type: ReactionType; label: string }> = [
-  { type: "like", label: "Like" },
-  { type: "love", label: "Love" },
-  { type: "haha", label: "Haha" },
-  { type: "wow", label: "Wow" },
-  { type: "sad", label: "Sad" },
-  { type: "angry", label: "Angry" },
+const reactionTypes: Array<{ type: ReactionType; label: string; emoji: string }> = [
+  { type: "like", label: "Like", emoji: "👍" },
+  { type: "love", label: "Love", emoji: "❤️" },
+  { type: "haha", label: "Haha", emoji: "😂" },
+  { type: "wow", label: "Wow", emoji: "😮" },
+  { type: "sad", label: "Sad", emoji: "😢" },
+  { type: "angry", label: "Angry", emoji: "😡" },
 ];
-
-const reactionMarks: Record<ReactionType, string> = {
-  like: "↑",
-  love: "♥",
-  haha: "☺",
-  wow: "!",
-  sad: "·",
-  angry: "×",
-};
 
 export default function PostCard({
   post,
@@ -50,6 +41,7 @@ export default function PostCard({
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [editingCommentText, setEditingCommentText] = useState("");
   const [commentsOpen, setCommentsOpen] = useState(false);
+  const [isReactionMenuOpen, setIsReactionMenuOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -167,7 +159,7 @@ export default function PostCard({
   };
 
   return (
-    <article className="post-card">
+    <article className="post-card" id={`post-${post._id}`}>
       {post.isRepost && (
         <p className="repost-label"><Icon name="share" /> Shared by {getUserName(author)}</p>
       )}
@@ -252,23 +244,52 @@ export default function PostCard({
       </div>
 
       <div className="post-actions">
-        <label className={currentReaction ? "reaction-action selected" : "reaction-action"}>
-          <Icon name="heart" />
-          <span>{currentReaction ? reactionTypes.find(({ type }) => type === currentReaction)?.label : "React"}</span>
-          <select
-            aria-label="Choose a reaction"
-            value={currentReaction ?? ""}
-            onChange={(event) => {
-              if (event.target.value) void react(event.target.value as ReactionType);
+        <div
+          className="reaction-picker"
+          onMouseEnter={() => setIsReactionMenuOpen(true)}
+          onMouseLeave={() => setIsReactionMenuOpen(false)}
+        >
+          <button
+            type="button"
+            className={currentReaction ? "reaction-action selected" : "reaction-action"}
+            aria-label={currentReaction ? `Your reaction: ${reactionTypes.find(({ type }) => type === currentReaction)?.label}` : "React to this post"}
+            aria-expanded={isReactionMenuOpen}
+            onFocus={() => setIsReactionMenuOpen(true)}
+            onClick={() => {
+              if (currentReaction) {
+                void react(currentReaction);
+                setIsReactionMenuOpen(false);
+              } else {
+                setIsReactionMenuOpen(true);
+              }
             }}
           >
-            <option value="">Choose reaction</option>
-            {reactionTypes.map((reaction) => (
-              <option key={reaction.type} value={reaction.type}>{reaction.label}</option>
-            ))}
-          </select>
-          <span className="reaction-mark" aria-hidden="true">{currentReaction ? reactionMarks[currentReaction] : "+"}</span>
-        </label>
+            <span className="reaction-trigger-emoji" aria-hidden="true">
+              {reactionTypes.find(({ type }) => type === currentReaction)?.emoji ?? "👍"}
+            </span>
+            <span>{currentReaction ? reactionTypes.find(({ type }) => type === currentReaction)?.label : "React"}</span>
+          </button>
+          {isReactionMenuOpen && (
+            <div className="reaction-menu" role="menu" aria-label="Choose a reaction">
+              {reactionTypes.map((reaction) => (
+                <button
+                  key={reaction.type}
+                  type="button"
+                  className="reaction-option"
+                  role="menuitem"
+                  aria-label={reaction.label}
+                  title={reaction.label}
+                  onClick={() => {
+                    void react(reaction.type);
+                    setIsReactionMenuOpen(false);
+                  }}
+                >
+                  <span aria-hidden="true">{reaction.emoji}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
         <button className="post-action" onClick={() => setCommentsOpen((open) => !open)}>
           <Icon name="comment" /><span>Comment</span>
         </button>

@@ -73,12 +73,28 @@ export default function ProfilePage() {
     setIsUploading(true);
     setError("");
     try {
-      setUser(await userService.uploadAvatar(file));
+      const updated = await userService.uploadAvatar(file);
+      setUser(updated);
+      window.dispatchEvent(new CustomEvent("social:profile-updated", { detail: updated }));
     } catch (uploadError) {
       setError(getErrorMessage(uploadError, "Your profile photo couldn't be updated."));
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAvatar = async () => {
+    setIsUploading(true);
+    setError("");
+    try {
+      const updated = await userService.removeAvatar();
+      setUser(updated);
+      window.dispatchEvent(new CustomEvent("social:profile-updated", { detail: updated }));
+    } catch (removeError) {
+      setError(getErrorMessage(removeError, "Your profile photo couldn't be removed."));
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -133,15 +149,27 @@ export default function ProfilePage() {
           <span className="cover-caption">Your network, in one place</span>
         </div>
         <div className="profile-identity">
-          <button
-            className="profile-avatar-button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-            aria-label="Change profile photo"
-          >
-            <Avatar user={user} size="large" />
-            <span>{isUploading ? "Uploading…" : "Change photo"}</span>
-          </button>
+          <div className="profile-avatar-actions">
+            <button
+              className="profile-avatar-button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              aria-label="Change profile photo"
+            >
+              <Avatar user={user} size="large" />
+              <span>{isUploading ? "Uploading…" : "Change photo"}</span>
+            </button>
+            {user?.profilePicture && (
+              <button
+                type="button"
+                className="profile-avatar-remove-button"
+                onClick={() => void removeAvatar()}
+                disabled={isUploading}
+              >
+                Remove photo
+              </button>
+            )}
+          </div>
           <input
             ref={fileInputRef}
             className="visually-hidden"

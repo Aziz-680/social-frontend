@@ -2,7 +2,7 @@ import { apiClient } from "./apiClient";
 import type { User, WorkExperience } from "@/lib/types";
 
 export type ProfileUpdate = Partial<
-  Pick<User, "firstName" | "lastName" | "age" | "phoneNumber" | "gender" | "status">
+  Pick<User, "firstName" | "lastName" | "age" | "phoneNumber" | "gender" | "status" | "profilePicture">
 > & { workExperience?: WorkExperience[] };
 
 class UserService {
@@ -34,6 +34,8 @@ class UserService {
     const response = await apiClient.post("/user/upload-avatar", formData);
     return response.data.data;
   };
+
+  removeAvatar = async (): Promise<User> => this.updateProfile({ profilePicture: null });
 }
 
 const userService = new UserService();

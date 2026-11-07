@@ -1,6 +1,6 @@
 # Social frontend
 
-A responsive social network frontend for the [Social-App API](https://github.com/Aziz-680/Social-App). It supports sign-in and registration, a privacy-aware feed, posts with photos, profile and work experience, people search, friend requests, reactions, comments, and sharing public posts.
+A responsive social network frontend for the [Social-App API](https://github.com/Aziz-680/Social-App). It supports sign-in and registration, a privacy-aware feed, posts with photos, profile and work experience, people search, friend requests, post activity notifications, reactions, comments, and sharing public posts.
 
 ## Run locally
 
@@ -18,3 +18,5 @@ The Next.js rewrite proxies `/api/*` requests to the backend, and the frontend's
 - `npm run build` — Create a production build.
 
 The backend uses an HTTP-only `token` cookie for authenticated requests. Its supported routes and validation rules are documented in the API repository.
+
+Post activity notifications are fetched from `GET /api/notification`, marked individually with `PATCH /api/notification/:id/read`, or marked all at once with `PATCH /api/notification/read-all`.

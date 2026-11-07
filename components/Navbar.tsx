@@ -9,6 +9,8 @@ import type { User } from "@/lib/types";
 import Avatar from "./Avatar";
 import FriendRequestsModal from "./FriendRequestsModal";
 import Icon from "./Icon";
+import NotificationCenter from "./NotificationCenter";
+import StatusSelector from "./StatusSelector";
 import ThemeToggle from "./ThemeToggle";
 
 const publicRoutes = ["/", "/login", "/register"];
@@ -37,11 +39,24 @@ export default function Navbar() {
     }
 
     const handleSessionExpired = () => router.replace("/login");
+    const handleStatusUpdated = (event: Event) => {
+      const status = (event as CustomEvent<{ status: string }>).detail?.status;
+      if (status) setUser((current) => current ? { ...current, status } : current);
+    };
+    const handleProfileUpdated = (event: Event) => {
+      const updatedUser = (event as CustomEvent<User>).detail;
+      if (updatedUser) setUser(updatedUser);
+    };
+
     window.addEventListener("social:session-expired", handleSessionExpired);
+    window.addEventListener("social:status-updated", handleStatusUpdated);
+    window.addEventListener("social:profile-updated", handleProfileUpdated);
 
     return () => {
       active = false;
       window.removeEventListener("social:session-expired", handleSessionExpired);
+      window.removeEventListener("social:status-updated", handleStatusUpdated);
+      window.removeEventListener("social:profile-updated", handleProfileUpdated);
     };
   }, [pathname, router]);
 
@@ -94,16 +109,20 @@ export default function Navbar() {
               <Icon name="users" />
               <span>Connections</span>
             </Link>
+            <NotificationCenter />
             <button className="header-link" onClick={() => setRequestOpen(true)}>
-              <Icon name="bell" />
+              <Icon name="user" />
               <span>Requests</span>
             </button>
           </nav>
 
           <div className="header-account">
-            <ThemeToggle />
             {user && (
-              <Link href="/profile" className="account-link" aria-label="Open your profile">
+              <Link
+                href="/profile"
+                className="account-link"
+                aria-label="Open your profile"
+              >
                 <Avatar user={user} size="small" />
                 <span>{user.firstName}</span>
               </Link>
@@ -122,9 +141,29 @@ export default function Navbar() {
         {error && <p className="header-error" role="status">{error}</p>}
       </header>
 
+      <div className="floating-theme-control">
+        <ThemeToggle />
+      </div>
+      {user && (
+        <div className="floating-status-control" aria-label="Your status">
+          <span className="floating-status-label">Status</span>
+          <StatusSelector
+            currentStatus={user.status}
+            onStatusChange={(status) => setUser((current) => current ? { ...current, status } : current)}
+          />
+        </div>
+      )}
+
       <nav className="mobile-nav" aria-label="Mobile navigation">
         <Link href="/feed" aria-label="Home"><Icon name="home" /></Link>
         <Link href="/search" aria-label="Search"><Icon name="search" /></Link>
+        <button
+          type="button"
+          aria-label="Activity notifications"
+          onClick={() => window.dispatchEvent(new Event("social:open-notifications"))}
+        >
+          <Icon name="bell" />
+        </button>
         <Link href="/friends" aria-label="Connections"><Icon name="users" /></Link>
         <Link href="/profile" aria-label="Profile"><Icon name="user" /></Link>
       </nav>

@@ -41,7 +41,7 @@ Cards use a 15px radius, a subtle border, and a low-contrast shadow. Inputs and 
 
 ## Layout and components
 
-- A sticky shared header provides the provisional wordmark, search entry, account actions, and primary navigation.
+- A sticky shared header provides the provisional wordmark, search entry, account actions, primary navigation, and post activity notifications.
 - The authenticated feed uses a responsive profile/feed/connections composition, with the post composer before the latest API-backed posts.
 - Post cards group author and visibility metadata, content/media, engagement counts, and reaction/comment/share actions.
 - Profiles and discovery surfaces reuse the same cards, avatars, connection actions, and navigation conventions.
@@ -52,7 +52,7 @@ Cards use a 15px radius, a subtle border, and a low-contrast shadow. Inputs and 
 
 - Respect the backend visibility values: public, friends, and only me. Keep the selected audience visible in the composer and on posts.
 - Use semantic controls and labels, visible keyboard focus, accessible names for icon-only actions, and status/alert roles for asynchronous feedback.
-- Disabled actions communicate why they are unavailable; avoid implying unsupported messaging or notification features.
+- Disabled actions communicate why they are unavailable; do not imply unsupported messaging features.
 - Theme changes preserve readable foreground/background contrast in both light and dark modes.
 
 ## Source of truth
