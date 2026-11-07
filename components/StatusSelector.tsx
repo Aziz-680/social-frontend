@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import userService from "@/services/UserService";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Icon from "./Icon";
 
 const STATUS_OPTIONS = [
@@ -25,7 +26,6 @@ export default function StatusSelector({
 }: StatusSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [error, setError] = useState("");
 
   const handleSelectStatus = async (status: string) => {
     if (status === currentStatus) {
@@ -34,13 +34,13 @@ export default function StatusSelector({
     }
 
     setIsUpdating(true);
-    setError("");
     try {
       await userService.updateProfile({ status });
       onStatusChange(status);
       window.dispatchEvent(new CustomEvent("social:status-updated", { detail: { status } }));
-    } catch {
-      setError("Status couldn't be updated.");
+      notifySuccess("Your status has been updated.");
+    } catch (error) {
+      notifyError(error, "Status couldn't be updated.");
     } finally {
       setIsUpdating(false);
       setIsOpen(false);
@@ -74,7 +74,6 @@ export default function StatusSelector({
           ))}
         </div>
       )}
-      {error && <span className="status-error" role="status">{error}</span>}
     </div>
   );
 }

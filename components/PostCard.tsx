@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import postService from "@/services/PostService";
 import type { Post, ReactionType, User } from "@/lib/types";
 import { getUserId, getUserName } from "@/lib/types";
-import { getErrorMessage } from "@/lib/errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
+import UserStatus from "./UserStatus";
 
 type PostCardProps = {
   post: Post;
@@ -42,9 +43,10 @@ export default function PostCard({
   const [editingCommentText, setEditingCommentText] = useState("");
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [isReactionMenuOpen, setIsReactionMenuOpen] = useState(false);
+  const [isPrivacyMenuOpen, setIsPrivacyMenuOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const privacyControlRef = useRef<HTMLDivElement>(null);
 
   const author = typeof post.userId === "object" ? post.userId : undefined;
   const isOwner = getUserId(post.userId) === currentUser?._id;
@@ -58,6 +60,28 @@ export default function PostCard({
   const timestamp = Number.isNaN(date.getTime())
     ? "Recently"
     : new Intl.DateTimeFormat(undefined, { dateStyle: "medium" }).format(date);
+  const privacyOptions: Array<{ value: Post["privacy"]; label: string; detail: string; icon: "globe" | "users" | "lock" }> = [
+    { value: "public", label: "Anyone", detail: "Anyone can see this post", icon: "globe" },
+    { value: "friends", label: "Connections", detail: "Only your connections can see this", icon: "users" },
+    { value: "only_me", label: "Only me", detail: "Only you can see this post", icon: "lock" },
+  ];
+  const selectedPrivacy = privacyOptions.find((option) => option.value === editPrivacy) ?? privacyOptions[0];
+
+  useEffect(() => {
+    if (!isPrivacyMenuOpen) return;
+    const closeOnOutsideClick = (event: PointerEvent) => {
+      if (!privacyControlRef.current?.contains(event.target as Node)) setIsPrivacyMenuOpen(false);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsPrivacyMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isPrivacyMenuOpen]);
 
   const savePost = async () => {
     setError("");
@@ -75,8 +99,9 @@ export default function PostCard({
       );
       onPostUpdate(updated);
       setIsEditing(false);
+      notifySuccess("Your post has been updated.");
     } catch (saveError) {
-      setError(getErrorMessage(saveError, "Your post couldn't be updated."));
+      notifyError(saveError, "Your post couldn't be updated.");
     } finally {
       setIsSaving(false);
     }
@@ -88,8 +113,9 @@ export default function PostCard({
     try {
       await postService.deletePost(post._id);
       onPostDelete?.(post._id);
+      notifySuccess("Your post has been deleted.");
     } catch (deleteError) {
-      setError(getErrorMessage(deleteError, "Your post couldn't be deleted."));
+      notifyError(deleteError, "Your post couldn't be deleted.");
     } finally {
       setIsSaving(false);
     }
@@ -100,7 +126,7 @@ export default function PostCard({
     try {
       onPostUpdate(await postService.reactToPost(post._id, type));
     } catch (reactionError) {
-      setError(getErrorMessage(reactionError, "Your reaction couldn't be saved."));
+      notifyError(reactionError, "Your reaction couldn't be saved.");
     }
   };
 
@@ -112,8 +138,9 @@ export default function PostCard({
       onPostUpdate(await postService.addComment(post._id, commentText.trim()));
       setCommentText("");
       setCommentsOpen(true);
+      notifySuccess("Your comment has been added.");
     } catch (commentError) {
-      setError(getErrorMessage(commentError, "Your comment couldn't be added."));
+      notifyError(commentError, "Your comment couldn't be added.");
     }
   };
 
@@ -124,7 +151,7 @@ export default function PostCard({
       onPostUpdate(await postService.editComment(post._id, commentId, editingCommentText.trim()));
       setEditingComment(null);
     } catch (commentError) {
-      setError(getErrorMessage(commentError, "Your comment couldn't be updated."));
+      notifyError(commentError, "Your comment couldn't be updated.");
     }
   };
 
@@ -133,7 +160,7 @@ export default function PostCard({
     try {
       onPostUpdate(await postService.deleteComment(post._id, commentId));
     } catch (commentError) {
-      setError(getErrorMessage(commentError, "Your comment couldn't be deleted."));
+      notifyError(commentError, "Your comment couldn't be deleted.");
     }
   };
 
@@ -142,19 +169,18 @@ export default function PostCard({
     try {
       onPostUpdate(await postService.reactToComment(post._id, commentId, type));
     } catch (reactionError) {
-      setError(getErrorMessage(reactionError, "Your reaction couldn't be saved."));
+      notifyError(reactionError, "Your reaction couldn't be saved.");
     }
   };
 
   const repost = async () => {
     setError("");
-    setNotice("");
     try {
       await postService.repost(post._id);
-      setNotice("Shared to your profile.");
+      notifySuccess("Shared to your profile.");
       onPostShared?.();
     } catch (repostError) {
-      setError(getErrorMessage(repostError, "This post couldn't be shared."));
+      notifyError(repostError, "This post couldn't be shared.");
     }
   };
 
@@ -168,6 +194,7 @@ export default function PostCard({
           <Avatar user={author} />
           <span>
             <strong>{getUserName(author)}</strong>
+            <UserStatus status={author?.status} />
             <small>{timestamp} <span aria-hidden="true">·</span> {post.privacy.replace("_", " ")}</small>
           </span>
         </Link>
@@ -195,17 +222,41 @@ export default function PostCard({
             rows={4}
           />
           <div className="edit-actions">
-            <label>
-              Visibility
-              <select
-                value={editPrivacy}
-                onChange={(event) => setEditPrivacy(event.target.value as Post["privacy"])}
+            <div className="edit-privacy-control" ref={privacyControlRef}>
+              <span className="edit-privacy-label">Visibility</span>
+              <button
+                type="button"
+                className="edit-privacy-trigger"
+                aria-haspopup="listbox"
+                aria-expanded={isPrivacyMenuOpen}
+                onClick={() => setIsPrivacyMenuOpen((open) => !open)}
               >
-                <option value="public">Anyone</option>
-                <option value="friends">Connections</option>
-                <option value="only_me">Only me</option>
-              </select>
-            </label>
+                <Icon name={selectedPrivacy.icon} />
+                <span>{selectedPrivacy.label}</span>
+                <Icon name="chevron" />
+              </button>
+              {isPrivacyMenuOpen && (
+                <div className="edit-privacy-menu" role="listbox" aria-label="Post visibility">
+                  {privacyOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="option"
+                      aria-selected={editPrivacy === option.value}
+                      className={editPrivacy === option.value ? "edit-privacy-option selected" : "edit-privacy-option"}
+                      onClick={() => {
+                        setEditPrivacy(option.value);
+                        setIsPrivacyMenuOpen(false);
+                      }}
+                    >
+                      <span className="edit-privacy-option-icon"><Icon name={option.icon} /></span>
+                      <span className="edit-privacy-option-copy"><strong>{option.label}</strong><small>{option.detail}</small></span>
+                      {editPrivacy === option.value && <Icon name="check" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <button className="button button-quiet button-small" onClick={() => setIsEditing(false)}>
               Cancel
             </button>
@@ -303,7 +354,6 @@ export default function PostCard({
         </button>
       </div>
 
-      {notice && <p className="inline-success" role="status">{notice}</p>}
       {error && <p className="form-error" role="alert">{error}</p>}
 
       {commentsOpen && (
@@ -334,6 +384,7 @@ export default function PostCard({
                   <div className="comment-body">
                     <div className="comment-bubble">
                       <strong>{getUserName(commenter)}</strong>
+                      <UserStatus status={commenter?.status} />
                       {editingComment === comment._id ? (
                         <textarea
                           value={editingCommentText}

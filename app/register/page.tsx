@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import Link from "next/link";
 import authService from "@/services/AuthService";
-import { getErrorMessage } from "@/lib/errors";
+import { notifyError } from "@/lib/notifications";
 import Icon from "@/components/Icon";
 
 export default function RegisterPage() {
@@ -12,19 +12,17 @@ export default function RegisterPage() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [registered, setRegistered] = useState(false);
 
   const handleRegister = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
     setIsLoading(true);
     try {
       await authService.register(firstName.trim(), lastName.trim(), email, password);
       setRegistered(true);
     } catch (registerError) {
-      setError(getErrorMessage(registerError, "Your account couldn't be created. Please try again."));
+      notifyError(registerError, "Your account couldn't be created. Please try again.");
       setIsLoading(false);
     }
   };
@@ -38,7 +36,6 @@ export default function RegisterPage() {
           <h1>Make yourself at home</h1>
           <p>Create an account and bring your network together.</p>
         </div>
-        {error && <p className="form-error" role="alert">{error}</p>}
         {registered ? (
           <div className="registration-success" role="status">
             <span className="success-mark"><Icon name="check" /></span>

@@ -17,6 +17,7 @@ export default function Avatar({ user, size = "medium", className = "" }: Avatar
       ) : (
         initials.toUpperCase()
       )}
+      {user?.status && <i className={`avatar-status-dot status-${user.status.toLowerCase().replaceAll(" ", "-")}`} />}
     </span>
   );
 }

@@ -5,26 +5,25 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import authService from "@/services/AuthService";
-import { getErrorMessage } from "@/lib/errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Icon from "@/components/Icon";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    setError("");
     setIsLoading(true);
     try {
       await authService.login(email, password);
+      notifySuccess("Welcome back!");
       router.replace("/feed");
       router.refresh();
     } catch (loginError) {
-      setError(getErrorMessage(loginError, "We couldn't sign you in. Check your details and try again."));
+      notifyError(loginError, "We couldn't sign you in. Check your details and try again.");
       setIsLoading(false);
     }
   };
@@ -38,7 +37,6 @@ export default function LoginPage() {
           <h1>Good to see you</h1>
           <p>Sign in and pick up where your network left off.</p>
         </div>
-        {error && <p className="form-error" role="alert">{error}</p>}
         <form className="auth-form" onSubmit={handleLogin}>
           <label>
             Email address

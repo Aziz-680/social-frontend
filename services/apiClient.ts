@@ -1,19 +1,28 @@
 import axios from "axios";
+import { toast } from "sonner";
 
-// Fallback to exactly where the Express server lives
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+let sessionExpirationHandled = false;
 
 export const apiClient = axios.create({
-  baseURL: "/api", // Relative path handled by Next.js proxy rewrite
+  // Use the configured API origin in production; local development keeps the Next.js proxy.
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "/api",
   withCredentials: true,
 });
 
 // Global interceptor for session expiration
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (response.config.url?.includes("/auth/login")) sessionExpirationHandled = false;
+    return response;
+  },
   (error) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
-      if (!["/login", "/register", "/"].includes(window.location.pathname)) {
+      if (
+        !sessionExpirationHandled &&
+        !["/login", "/register", "/"].includes(window.location.pathname)
+      ) {
+        sessionExpirationHandled = true;
+        toast.error("Your session has expired. Please sign in again.");
         window.dispatchEvent(new Event("social:session-expired"));
       }
     }

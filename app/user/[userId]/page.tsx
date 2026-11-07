@@ -8,6 +8,9 @@ import postService from "@/services/PostService";
 import authService from "@/services/AuthService";
 import friendService from "@/services/FriendService";
 import PostCard from "@/components/PostCard";
+import Avatar from "@/components/Avatar";
+import UserStatus from "@/components/UserStatus";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 
 export default function PublicUserProfilePage({ params }: { params: Promise<{ userId: string }> }) {
   const resolvedParams = use(params);
@@ -42,6 +45,7 @@ export default function PublicUserProfilePage({ params }: { params: Promise<{ us
         setPosts(postsData?.posts || postsData || []);
       } catch (error: any) {
         console.error("Failed to load user profile:", error.response?.data || error.message);
+        notifyError(error, "This user profile couldn't be loaded.");
       } finally {
         setLoading(false);
       }
@@ -55,8 +59,9 @@ export default function PublicUserProfilePage({ params }: { params: Promise<{ us
     try {
       await friendService.sendRequest(userId);
       setProfileUser((prev: any) => ({ ...prev, friendshipStatus: "pending" }));
+      notifySuccess("Connection request sent.");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Failed to send friend request");
+      notifyError(error, "Failed to send friend request.");
     } finally {
       setIsSendingRequest(false);
     }
@@ -67,8 +72,9 @@ export default function PublicUserProfilePage({ params }: { params: Promise<{ us
     try {
       await friendService.unfriend(userId);
       setProfileUser((prev: any) => ({ ...prev, friendshipStatus: "none" }));
+      notifySuccess("You are no longer connected.");
     } catch (error: any) {
-      alert(error.response?.data?.message || "Failed to unfriend");
+      notifyError(error, "Failed to unfriend this user.");
     }
   };
 
@@ -91,16 +97,13 @@ export default function PublicUserProfilePage({ params }: { params: Promise<{ us
       <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl shadow-lg overflow-hidden mb-8">
         <div className="h-48 bg-gradient-to-r from-blue-500 to-indigo-600 w-full"></div>
         <div className="px-8 pb-8 flex flex-col sm:flex-row gap-6 items-center sm:items-end -mt-16">
-          <img
-            src={profileUser.profilePicture || "https://via.placeholder.com/128"}
-            alt="Profile"
-            className="w-32 h-32 rounded-full border-4 border-white dark:border-gray-900 object-cover shadow-md shrink-0 bg-gray-200"
-          />
+          <Avatar user={profileUser} size="large" className="public-user-avatar" />
 
           <div className="flex-1 text-center sm:text-left">
             <h2 className="text-3xl font-extrabold text-gray-900 dark:text-white">
               {profileUser.firstName} {profileUser.lastName}
             </h2>
+            <UserStatus status={profileUser.status} />
             <p className="text-gray-500 dark:text-gray-400 mt-1">{profileUser.email}</p>
           </div>
 

@@ -6,12 +6,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import authService from "@/services/AuthService";
 import type { User } from "@/lib/types";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Avatar from "./Avatar";
 import FriendRequestsModal from "./FriendRequestsModal";
 import Icon from "./Icon";
 import NotificationCenter from "./NotificationCenter";
 import StatusSelector from "./StatusSelector";
 import ThemeToggle from "./ThemeToggle";
+import UserStatus from "./UserStatus";
 
 const publicRoutes = ["/", "/login", "/register"];
 
@@ -22,7 +24,6 @@ export default function Navbar() {
   const [query, setQuery] = useState("");
   const [requestOpen, setRequestOpen] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -33,8 +34,8 @@ export default function Navbar() {
         .then((session) => {
           if (active) setUser(session.user);
         })
-        .catch(() => {
-          if (active) setError("Your session could not be loaded.");
+        .catch((sessionError) => {
+          if (active) notifyError(sessionError, "Your session could not be loaded.");
         });
     }
 
@@ -69,14 +70,14 @@ export default function Navbar() {
   };
 
   const handleLogout = async () => {
-    setError("");
     setIsLoggingOut(true);
     try {
       await authService.logout();
+      notifySuccess("You have signed out.");
       router.replace("/login");
       router.refresh();
-    } catch {
-      setError("We couldn't sign you out. Please try again.");
+    } catch (logoutError) {
+      notifyError(logoutError, "We couldn't sign you out. Please try again.");
       setIsLoggingOut(false);
     }
   };
@@ -124,7 +125,7 @@ export default function Navbar() {
                 aria-label="Open your profile"
               >
                 <Avatar user={user} size="small" />
-                <span>{user.firstName}</span>
+                <span className="account-name-status"><span>{user.firstName}</span><UserStatus status={user.status} /></span>
               </Link>
             )}
             <button
@@ -138,7 +139,6 @@ export default function Navbar() {
             </button>
           </div>
         </div>
-        {error && <p className="header-error" role="status">{error}</p>}
       </header>
 
       <div className="floating-theme-control">
@@ -165,6 +165,7 @@ export default function Navbar() {
           <Icon name="bell" />
         </button>
         <Link href="/friends" aria-label="Connections"><Icon name="users" /></Link>
+        <Link href="/messages" aria-label="Messages"><Icon name="chat" /></Link>
         <Link href="/profile" aria-label="Profile"><Icon name="user" /></Link>
       </nav>
 

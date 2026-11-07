@@ -6,8 +6,10 @@ import friendService from "@/services/FriendService";
 import type { User } from "@/lib/types";
 import { getUserId, getUserName } from "@/lib/types";
 import { getErrorMessage } from "@/lib/errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Avatar from "@/components/Avatar";
 import Icon from "@/components/Icon";
+import UserStatus from "@/components/UserStatus";
 
 export default function FriendsPage() {
   const [friends, setFriends] = useState<User[]>([]);
@@ -47,8 +49,9 @@ export default function FriendsPage() {
         await friendService.rejectRequest(id);
       }
       setRequests((current) => current.filter((request) => getUserId(request) !== id));
+      notifySuccess(action === "accept" ? "Connection request accepted." : "Connection request declined.");
     } catch (requestError) {
-      setError(getErrorMessage(requestError, "That request couldn't be updated."));
+      notifyError(requestError, "That request couldn't be updated.");
     } finally {
       setBusyId("");
     }
@@ -88,6 +91,7 @@ export default function FriendsPage() {
                       <Link href={`/profile/${id}`} className="network-person">
                         <Avatar user={request} size="large" />
                         <strong>{getUserName(request)}</strong>
+                        <UserStatus status={request.status} />
                         <span>Would like to connect</span>
                       </Link>
                       <div className="network-card-actions">
@@ -131,6 +135,7 @@ export default function FriendsPage() {
                     <Link className="network-card network-person" href={`/profile/${id}`} key={id}>
                       <Avatar user={friend} size="large" />
                       <strong>{getUserName(friend)}</strong>
+                      <UserStatus status={friend.status} />
                       <span>View profile <Icon name="arrow" /></span>
                     </Link>
                   );

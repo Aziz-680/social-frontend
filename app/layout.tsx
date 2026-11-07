@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import AppFrame from "@/components/AppFrame";
+import ToastProvider from "../components/ToastProvider";
 
 export const metadata: Metadata = {
   title: "Social | Your network, all together",
@@ -15,6 +16,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <ToastProvider />
         <div
           hidden
           aria-hidden="true"

@@ -7,6 +7,8 @@ import type { ReactNode } from "react";
 import userService from "@/services/UserService";
 import type { User } from "@/lib/types";
 import Avatar from "./Avatar";
+import ChatNotifications from "./ChatNotifications";
+import UserStatus from "./UserStatus";
 import Icon from "./Icon";
 import Navbar from "./Navbar";
 import RightSidebar from "./RightSidebar";
@@ -16,6 +18,7 @@ const publicRoutes = ["/", "/login", "/register"];
 export default function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const isPublic = publicRoutes.includes(pathname);
+  const isMessagesPage = pathname.startsWith("/messages");
   const [user, setUser] = useState<User | null>(null);
   const [profileUnavailable, setProfileUnavailable] = useState(false);
 
@@ -26,8 +29,13 @@ export default function AppFrame({ children }: { children: ReactNode }) {
       const updatedUser = (event as CustomEvent<User>).detail;
       if (updatedUser) setUser(updatedUser);
     };
+    const handleStatusUpdated = (event: Event) => {
+      const status = (event as CustomEvent<{ status: string }>).detail?.status;
+      if (status) setUser((current) => current ? { ...current, status } : current);
+    };
 
     window.addEventListener("social:profile-updated", handleProfileUpdated);
+    window.addEventListener("social:status-updated", handleStatusUpdated);
     userService.getProfile().then((profile) => {
       if (active) {
         setUser(profile);
@@ -42,20 +50,23 @@ export default function AppFrame({ children }: { children: ReactNode }) {
     return () => {
       active = false;
       window.removeEventListener("social:profile-updated", handleProfileUpdated);
+      window.removeEventListener("social:status-updated", handleStatusUpdated);
     };
   }, [isPublic]);
 
   return (
     <>
       <Navbar />
-      <div className={isPublic ? "public-layout" : "app-workspace"}>
-        {!isPublic && (
+      <ChatNotifications user={user} active={!isPublic} />
+      <div className={`${isPublic ? "public-layout" : "app-workspace"}${isMessagesPage ? " app-workspace-messages" : ""}`}>
+        {!isPublic && !isMessagesPage && (
           <aside className="left-rail">
             <section className="rail-profile">
               <div className="rail-profile-cover" />
               <Link href="/profile" className="rail-profile-person">
                 <Avatar user={user} size="medium" />
                 <strong>{user ? `${user.firstName} ${user.lastName}` : "Your profile"}</strong>
+                <UserStatus status={user?.status} />
                 <span>{profileUnavailable ? "Profile details unavailable" : "View your profile"}</span>
               </Link>
             </section>
@@ -76,7 +87,7 @@ export default function AppFrame({ children }: { children: ReactNode }) {
           </aside>
         )}
         <main className={isPublic ? "public-main" : "app-main"}>{children}</main>
-        {!isPublic && <RightSidebar />}
+        {!isPublic && !isMessagesPage && <RightSidebar user={user} />}
       </div>
     </>
   );

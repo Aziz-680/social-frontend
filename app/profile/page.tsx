@@ -7,10 +7,12 @@ import postService from "@/services/PostService";
 import userService from "@/services/UserService";
 import type { Pagination, Post, User } from "@/lib/types";
 import { getErrorMessage } from "@/lib/errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Avatar from "@/components/Avatar";
 import Icon from "@/components/Icon";
 import PostCard from "@/components/PostCard";
 import StatusSelector from "@/components/StatusSelector";
+import UserStatus from "@/components/UserStatus";
 
 const emptyPagination: Pagination = { totalItems: 0, currentPage: 0, totalPages: 0, limit: 5 };
 
@@ -18,6 +20,11 @@ export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [pagination, setPagination] = useState(emptyPagination);
+  const [postContent, setPostContent] = useState("");
+  const [postPrivacy, setPostPrivacy] = useState<Post["privacy"]>("public");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isPosting, setIsPosting] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -29,6 +36,7 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const postImageInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     userService
@@ -53,6 +61,47 @@ export default function ProfilePage() {
       .catch((postError) => setError(getErrorMessage(postError, "Your posts couldn't be loaded.")));
   }, [user?._id]);
 
+  useEffect(() => () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+  }, [imagePreview]);
+
+  const choosePostImage = (file?: File) => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setSelectedImage(file ?? null);
+    setImagePreview(file ? URL.createObjectURL(file) : null);
+  };
+
+  const createPost = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!postContent.trim() && !selectedImage) return;
+
+    const formData = new FormData();
+    formData.append("content", postContent.trim());
+    formData.append("privacy", postPrivacy);
+    if (selectedImage) formData.append("image", selectedImage);
+
+    setIsPosting(true);
+    try {
+      const created = await postService.createPost(formData);
+      setPosts((current) => [created, ...current]);
+      setPagination((current) => ({
+        ...current,
+        totalItems: current.totalItems + 1,
+        totalPages: Math.ceil((current.totalItems + 1) / current.limit),
+        currentPage: Math.max(1, current.currentPage),
+      }));
+      setPostContent("");
+      setPostPrivacy("public");
+      choosePostImage();
+      if (postImageInputRef.current) postImageInputRef.current.value = "";
+      notifySuccess("Your post has been shared.");
+    } catch (postError) {
+      notifyError(postError, "Your post couldn't be published.");
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
   const saveProfile = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSaving(true);
@@ -61,8 +110,9 @@ export default function ProfilePage() {
       const updated = await userService.updateProfile({ firstName: firstName.trim(), lastName: lastName.trim() });
       setUser(updated);
       setIsEditing(false);
+      notifySuccess("Your profile has been updated.");
     } catch (saveError) {
-      setError(getErrorMessage(saveError, "Your profile couldn't be updated."));
+      notifyError(saveError, "Your profile couldn't be updated.");
     } finally {
       setIsSaving(false);
     }
@@ -76,8 +126,9 @@ export default function ProfilePage() {
       const updated = await userService.uploadAvatar(file);
       setUser(updated);
       window.dispatchEvent(new CustomEvent("social:profile-updated", { detail: updated }));
+      notifySuccess("Your profile photo has been updated.");
     } catch (uploadError) {
-      setError(getErrorMessage(uploadError, "Your profile photo couldn't be updated."));
+      notifyError(uploadError, "Your profile photo couldn't be updated.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -91,8 +142,9 @@ export default function ProfilePage() {
       const updated = await userService.removeAvatar();
       setUser(updated);
       window.dispatchEvent(new CustomEvent("social:profile-updated", { detail: updated }));
+      notifySuccess("Your profile photo has been removed.");
     } catch (removeError) {
-      setError(getErrorMessage(removeError, "Your profile photo couldn't be removed."));
+      notifyError(removeError, "Your profile photo couldn't be removed.");
     } finally {
       setIsUploading(false);
     }
@@ -110,8 +162,9 @@ export default function ProfilePage() {
       setUser(updated);
       setJobTitle("");
       setCompany("");
+      notifySuccess("Work experience has been added.");
     } catch (experienceError) {
-      setError(getErrorMessage(experienceError, "Work experience couldn't be saved."));
+      notifyError(experienceError, "Work experience couldn't be saved.");
     } finally {
       setIsSavingExperience(false);
     }
@@ -125,7 +178,7 @@ export default function ProfilePage() {
       setPosts((current) => [...current, ...result.posts]);
       setPagination(result.pagination);
     } catch (postError) {
-      setError(getErrorMessage(postError, "More posts couldn't be loaded."));
+      notifyError(postError, "More posts couldn't be loaded.");
     } finally {
       setIsLoading(false);
     }
@@ -199,6 +252,7 @@ export default function ProfilePage() {
             ) : (
               <>
                 <h1>{user ? `${user.firstName} ${user.lastName}` : "Your profile"}</h1>
+                <UserStatus status={user?.status} />
                 <p>{user?.email}</p>
                 <span className="profile-network-note"><Icon name="users" /> A profile for every side of you</span>
               </>
@@ -261,6 +315,62 @@ export default function ProfilePage() {
           <button className="button button-secondary button-small" disabled={isSavingExperience}>
             {isSavingExperience ? "Saving…" : "Add experience"}
           </button>
+        </form>
+      </section>
+
+      <section className="composer-card profile-composer" aria-labelledby="profile-composer-title">
+        <h2 className="visually-hidden" id="profile-composer-title">Create a post</h2>
+        <div className="composer-top">
+          <Avatar user={user} />
+          <button className="composer-prompt" type="button" onClick={() => document.getElementById("profile-post-content")?.focus()}>
+            Share an update with your network
+          </button>
+        </div>
+        <form onSubmit={createPost}>
+          <textarea
+            id="profile-post-content"
+            value={postContent}
+            onChange={(event) => setPostContent(event.target.value)}
+            placeholder={`What would you like to share${user?.firstName ? `, ${user.firstName}` : ""}?`}
+            rows={3}
+            aria-labelledby="profile-composer-title"
+          />
+          {imagePreview && (
+            <div className="image-preview">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={imagePreview} alt="Selected post preview" />
+              <button type="button" className="icon-button" onClick={() => choosePostImage()} aria-label="Remove image">
+                <Icon name="close" />
+              </button>
+            </div>
+          )}
+          <div className="composer-actions">
+            <div className="composer-options">
+              <input
+                ref={postImageInputRef}
+                type="file"
+                accept="image/*"
+                className="visually-hidden"
+                onChange={(event) => choosePostImage(event.target.files?.[0])}
+                aria-label="Choose an image to attach"
+              />
+              <button type="button" className="composer-image" onClick={() => postImageInputRef.current?.click()}>
+                <Icon name="image" /><span>Photo</span>
+              </button>
+              <label className="privacy-select">
+                <Icon name="users" />
+                <select aria-label="Who can see this post" value={postPrivacy} onChange={(event) => setPostPrivacy(event.target.value as Post["privacy"])}>
+                  <option value="public">Anyone</option>
+                  <option value="friends">Connections</option>
+                  <option value="only_me">Only me</option>
+                </select>
+                <Icon name="chevron" />
+              </label>
+            </div>
+            <button className="button button-primary" type="submit" disabled={isPosting || (!postContent.trim() && !selectedImage)}>
+              {isPosting ? "Sharing…" : "Share"}
+            </button>
+          </div>
         </form>
       </section>
 

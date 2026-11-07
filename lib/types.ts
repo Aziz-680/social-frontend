@@ -30,12 +30,41 @@ export type NotificationItem = {
   _id: string;
   recipientId: string;
   actorId: string | User;
-  postId: string | Pick<Post, "_id" | "content" | "media" | "isRepost" | "originalPostId">;
-  type: "reaction" | "comment" | "share";
+  postId?: string | Pick<Post, "_id" | "content" | "media" | "isRepost" | "originalPostId">;
+  conversationId?: string;
+  type: "reaction" | "comment" | "share" | "message";
   reactionType?: ReactionType;
   commentPreview?: string;
+  messagePreview?: string;
   isRead: boolean;
   createdAt?: string;
+};
+
+export type ChatMessage = {
+  _id: string;
+  conversationId: string;
+  senderId: string | User;
+  text: string;
+  attachments?: ChatAttachment[];
+  readAt: string | null;
+  createdAt: string;
+  updatedAt?: string;
+};
+
+export type ChatAttachment = {
+  url: string;
+  name: string;
+  mimeType: string;
+  size: number;
+};
+
+export type ChatConversation = {
+  _id: string;
+  participants: Array<string | User>;
+  lastMessage?: string | ChatMessage | null;
+  lastMessageAt?: string | null;
+  unreadCount: number;
+  updatedAt?: string;
 };
 
 export type Comment = {

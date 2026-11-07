@@ -5,8 +5,10 @@ import Link from "next/link";
 import notificationService from "@/services/NotificationService";
 import type { NotificationItem, ReactionType } from "@/lib/types";
 import { getUserName } from "@/lib/types";
+import { notifyError } from "@/lib/notifications";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
+import UserStatus from "./UserStatus";
 
 const reactionLabels: Record<ReactionType, string> = {
   like: "liked",
@@ -25,10 +27,13 @@ function getNotificationMessage(notification: NotificationItem) {
       return "commented on your post";
     case "share":
       return "shared your post";
+    case "message":
+      return "sent you a message";
   }
 }
 
 function getPostId(notification: NotificationItem) {
+  if (!notification.postId) return "";
   return typeof notification.postId === "string" ? notification.postId : notification.postId._id;
 }
 
@@ -64,6 +69,7 @@ export default function NotificationCenter() {
       setError("");
       setIsOpen(true);
     };
+    const refreshFromChat = () => void refreshNotifications();
     const intervalId = window.setInterval(() => void refreshNotifications(), 30_000);
     const refreshOnFocus = () => {
       if (document.visibilityState === "visible") void refreshNotifications();
@@ -71,12 +77,14 @@ export default function NotificationCenter() {
     window.addEventListener("focus", refreshOnFocus);
     document.addEventListener("visibilitychange", refreshOnFocus);
     window.addEventListener("social:open-notifications", openFromMobileNav);
+    window.addEventListener("social:chat-inbox-updated", refreshFromChat);
     return () => {
       window.clearTimeout(initialRefreshId);
       window.clearInterval(intervalId);
       window.removeEventListener("focus", refreshOnFocus);
       document.removeEventListener("visibilitychange", refreshOnFocus);
       window.removeEventListener("social:open-notifications", openFromMobileNav);
+      window.removeEventListener("social:chat-inbox-updated", refreshFromChat);
     };
   }, [refreshNotifications]);
 
@@ -96,8 +104,8 @@ export default function NotificationCenter() {
         item._id === notification._id ? { ...item, isRead: true } : item,
       ));
       setUnreadCount((count) => Math.max(0, count - 1));
-    } catch {
-      setError("This notification couldn't be marked as read.");
+    } catch (error) {
+      notifyError(error, "This notification couldn't be marked as read.");
     }
   };
 
@@ -107,8 +115,8 @@ export default function NotificationCenter() {
       await notificationService.markAllAsRead();
       setNotifications((current) => current.map((item) => ({ ...item, isRead: true })));
       setUnreadCount(0);
-    } catch {
-      setError("Notifications couldn't be marked as read.");
+    } catch (error) {
+      notifyError(error, "Notifications couldn't be marked as read.");
     }
   };
 
@@ -143,7 +151,7 @@ export default function NotificationCenter() {
             <div className="modal-heading">
               <div>
                 <h2 id="activity-title">Notifications</h2>
-                <p>Reactions, comments, and shares on your posts.</p>
+                <p>Messages, reactions, comments, and shares.</p>
               </div>
               <div className="notification-heading-actions">
                 {unreadCount > 0 && (
@@ -162,28 +170,35 @@ export default function NotificationCenter() {
               {isLoading ? (
                 <p className="empty-message">Loading notifications…</p>
               ) : notifications.length === 0 ? (
-                <p className="empty-message">No post activity yet. Reactions, comments, and shares will appear here.</p>
+                <p className="empty-message">No new activity. Messages, reactions, comments, and shares will appear here.</p>
               ) : notifications.map((notification) => {
                 const actor = typeof notification.actorId === "string" ? undefined : notification.actorId;
                 const post = typeof notification.postId === "string" ? undefined : notification.postId;
-                const preview = notification.type === "comment"
+                const preview = notification.type === "message"
+                  ? notification.messagePreview
+                  : notification.type === "comment"
                   ? notification.commentPreview
                   : post?.content;
                 const postId = getPostId(notification);
+                const notificationHref = notification.type === "message" ? "/messages" : `/feed#post-${postId}`;
 
                 return (
                   <Link
                     className={notification.isRead ? "notification-row" : "notification-row unread"}
-                    href={`/feed#post-${postId}`}
+                    href={notificationHref}
                     key={notification._id}
                     onClick={() => {
                       void markAsRead(notification);
+                      if (notification.type === "message" && notification.conversationId) {
+                        window.sessionStorage.setItem("social:open-chat", notification.conversationId);
+                        window.dispatchEvent(new CustomEvent("social:open-chat", { detail: notification.conversationId }));
+                      }
                       setIsOpen(false);
                     }}
                   >
                     <Avatar user={actor} size="small" />
                     <span className="notification-content">
-                      <span><strong>{getUserName(actor)}</strong> {getNotificationMessage(notification)}</span>
+                      <span><strong>{getUserName(actor)}</strong> <UserStatus status={actor?.status} /> {getNotificationMessage(notification)}</span>
                       {preview && <span className="notification-preview">“{preview}”</span>}
                       <time dateTime={notification.createdAt}>{formatNotificationDate(notification.createdAt)}</time>
                     </span>

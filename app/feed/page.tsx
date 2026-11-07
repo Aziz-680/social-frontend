@@ -7,6 +7,7 @@ import postService from "@/services/PostService";
 import userService from "@/services/UserService";
 import type { Pagination, Post, User } from "@/lib/types";
 import { getErrorMessage } from "@/lib/errors";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Avatar from "@/components/Avatar";
 import Icon from "@/components/Icon";
 import PostCard from "@/components/PostCard";
@@ -98,9 +99,10 @@ export default function FeedPage() {
       setContent("");
       setPrivacy("public");
       chooseImage();
+      notifySuccess("Your post has been shared.");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (postError) {
-      setError(getErrorMessage(postError, "Your post couldn't be published."));
+      notifyError(postError, "Your post couldn't be published.");
     } finally {
       setIsPosting(false);
     }

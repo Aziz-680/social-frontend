@@ -5,7 +5,7 @@ export function proxy(request: NextRequest) {
   const token = request.cookies.get('token')?.value;
   const path = request.nextUrl.pathname;
 
-  const isProtectedRoute = ['/feed', '/profile', '/friends', '/search'].some((route) =>
+  const isProtectedRoute = ['/feed', '/profile', '/friends', '/search', '/messages'].some((route) =>
     path === route || path.startsWith(`${route}/`),
   );
   const isPublicAuthRoute = path === '/login' || path === '/register' || path === '/';
@@ -34,5 +34,7 @@ export const config = {
     '/profile/:path*',
     '/friends',
     '/search',
+    '/messages',
+    '/messages/:path*',
   ],
 };

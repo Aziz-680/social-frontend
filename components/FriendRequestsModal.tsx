@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useEffect, useState } from "react";
 import friendService from "@/services/FriendService";
 import type { User } from "@/lib/types";
 import { getUserId, getUserName } from "@/lib/types";
+import { notifyError, notifySuccess } from "@/lib/notifications";
 import Avatar from "./Avatar";
 import Icon from "./Icon";
+import UserStatus from "./UserStatus";
 
 type FriendRequestsModalProps = {
   isOpen: boolean;
@@ -47,8 +47,10 @@ export default function FriendRequestsModal({
       setRequests((current) =>
         current.filter((request) => getUserId(request) !== senderId),
       );
-    } catch {
-      setError(
+      notifySuccess(action === "accept" ? "Connection request accepted." : "Connection request declined.");
+    } catch (requestError) {
+      notifyError(
+        requestError,
         action === "accept"
           ? "That request couldn't be accepted. Please try again."
           : "That request couldn't be declined. Please try again.",
@@ -93,6 +95,7 @@ export default function FriendRequestsModal({
                 <Avatar user={request} />
                 <div className="request-person">
                   <strong>{getUserName(request)}</strong>
+                  <UserStatus status={request.status} />
                   <span>Would like to connect</span>
                 </div>
                 <div className="request-actions">

@@ -12,6 +12,7 @@ import Avatar from "@/components/Avatar";
 import ConnectionAction from "@/components/ConnectionAction";
 import Icon from "@/components/Icon";
 import PostCard from "@/components/PostCard";
+import UserStatus from "@/components/UserStatus";
 
 export default function PublicProfilePage() {
   const params = useParams<{ userId: string }>();
@@ -70,6 +71,7 @@ export default function PublicProfilePage() {
           <Avatar user={profile} size="large" />
           <div className="profile-details">
             <h1>{getUserName(profile)}</h1>
+            <UserStatus status={profile.status} />
             <p className="profile-network-note"><Icon name="users" /> {friendCount} {friendCount === 1 ? "connection" : "connections"}</p>
           </div>
           <ConnectionAction userId={userId} />

@@ -11,6 +11,7 @@ import { getErrorMessage } from "@/lib/errors";
 import Avatar from "@/components/Avatar";
 import ConnectionAction from "@/components/ConnectionAction";
 import Icon from "@/components/Icon";
+import UserStatus from "@/components/UserStatus";
 
 export default function SearchInterface({ initialQuery }: { initialQuery: string }) {
   const router = useRouter();
@@ -85,7 +86,7 @@ export default function SearchInterface({ initialQuery }: { initialQuery: string
             <article className="search-person" key={getUserId(person)}>
               <Link href={`/profile/${getUserId(person)}`} className="search-person-main">
                 <Avatar user={person} size="large" />
-                <span><strong>{getUserName(person)}</strong><small>Member of your wider network</small></span>
+                <span><strong>{getUserName(person)}</strong><UserStatus status={person.status} /><small>Member of your wider network</small></span>
               </Link>
               <ConnectionAction userId={getUserId(person)} />
             </article>
