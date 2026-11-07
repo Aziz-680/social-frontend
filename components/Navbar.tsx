@@ -38,7 +38,7 @@ export default function Navbar() {
         });
     }
 
-    const handleSessionExpired = () => router.replace("/login");
+    const handleSessionExpired = () => router.replace("/login?sessionExpired=1");
     const handleStatusUpdated = (event: Event) => {
       const status = (event as CustomEvent<{ status: string }>).detail?.status;
       if (status) setUser((current) => current ? { ...current, status } : current);

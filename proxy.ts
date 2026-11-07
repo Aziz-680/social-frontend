@@ -14,7 +14,9 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
 
-  if (isPublicAuthRoute && token) {
+  const isExpiredSessionRedirect = request.nextUrl.searchParams.get('sessionExpired') === '1';
+
+  if (isPublicAuthRoute && token && !isExpiredSessionRedirect) {
     return NextResponse.redirect(new URL('/feed', request.url));
   }
 
